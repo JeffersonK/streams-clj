@@ -27,18 +27,59 @@
 
 (defn- compute-over-window-collection [windows f] (reduce f [] windows))
 
-(defn- max-collection-length
+(defn- max-collection-len
   ([c1] (count c1))
   ([c1 & cols] (apply max (map count (reduce conj [c1] cols))))
   )
+;tests
+(def x (max-collection-len [1]))
+(println x)
+(def x (max-collection-len [1] [1 2]))
+(println x)
+(def x (max-collection-len [1] [1 2] [1 2 3]))
+(println x)
 
+(defn- coll-pad-end [c1 len elem]
+  (let [pad-len (- len (count c1))]
+    ;; TODO if it's negative that means we have to trim should probably throw an exception
+    (if (> pad-len 0)
+      (apply (partial conj c1) (repeat pad-len elem))
+      c1
+      )
+    )
+  )
+;;tests
+(println (= 10 (count (coll-pad-end [1] 10 nil))))
+(println (= 1 (count (coll-pad-end [1] 1 nil))))
 
-(def x (max-collection-length [1]))
-(println x)
-(def x (max-collection-length [1] [1 2]))
-(println x)
-(def x (max-collection-length [1] [1 2] [1 2 3]))
-(println x)
+(defn- cross-product
+  ([c1 c2] (for [row c1 col c2] (vec [row col])))
+  ([c1 c2 & cols] nil)
+  )
+;;tests
+;;equal sized lists
+(println (cross-product [1 2] [3 4]))
+;;un-equal sized lists
+(println (cross-product [1 2] [3]))
+
+(defn- cross-product-full-outer
+  ([c1 c2] (
+            let [pad-len (max-collection-len c1 c2)
+                 c1-pad (coll-pad-end c1 pad-len nil)
+                 c2-pad (coll-pad-end c2 pad-len nil)]
+             (println pad-len c1-pad c2-pad)
+;;             (def c1-pad (coll-pad-end c1 pad-len nil))
+;;             (def c2-pad ())
+;;            for [row c1 col c2] (vec [row col])
+             ))
+  ([c1 c2 & cols] nil)
+  )
+;;tests
+;;equal sized lists
+(println (cross-product-full-outer [1 2] [3 4]))
+;;un-equal sized lists
+(println (cross-product-full-outer [1 2] [3]))
+
 
 ;;(def next-chunk (stream-take-chunk stream-3 2))
 ;;(println next-chunk)
