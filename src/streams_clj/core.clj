@@ -53,6 +53,7 @@
 (println (= 1 (count (coll-pad-end [1] 1 nil))))
 
 (defn- cross-product
+  ([c1] (cross-product c1 c1)) ;;identity join
   ([c1 c2] (for [row c1 col c2] (vec [row col])))
   ([c1 c2 & cols] nil)
   )
@@ -62,23 +63,49 @@
 ;;un-equal sized lists
 (println (cross-product [1 2] [3]))
 
-(defn- cross-product-full-outer
-  ([c1 c2] (
+(defn- default-predicate [x & args] (true? true))
+
+(defn- create-var-sequence [n] (take n (vec ['a 'b 'c 'd 'e 'f 'g 'h 'i 'j 'k 'l 'm 'n 'o 'p 'q 'r 's 't 'u 'v 'w 'x 'y 'z]
+                                            )))
+
+(defmacro unroll [c1 & args] (
+                             let [pad-len (apply max-collection-len c1 args)
+                                  var-seq (create-var-sequence (+ 1 (count args)))
+                                  coll-seq (map (fn [x] (coll-pad-end x pad-len nil))  (conj args c1))
+                                  ]
+                               ;(println pad-len)
+                                 
+                               (println "BINDINGS => " var-seq coll-seq)
+                               
+                               `(for [~(interleave var-seq coll-seq)]
+                                  `(when (apply f var-seq) (vec var-seq)))
+                               ))
+
+(def x (macroexpand-1 '(unroll [1 2] [3 4] [5 6])))
+(println "X = " x)
+(println "Var Sequence (3) => " (create-var-sequence 3))
+(defn- cross-product-with-predicate
+  ([f c1] (cross-product-with-predicate f c1 c1)) ;;identity join
+  ([f c1 c2] ( ;;join two windows
             let [pad-len (max-collection-len c1 c2)
                  c1-pad (coll-pad-end c1 pad-len nil)
                  c2-pad (coll-pad-end c2 pad-len nil)]
-             (println pad-len c1-pad c2-pad)
-;;             (def c1-pad (coll-pad-end c1 pad-len nil))
-;;             (def c2-pad ())
-;;            for [row c1 col c2] (vec [row col])
-             ))
-  ([c1 c2 & cols] nil)
-  )
+             (for [a c1-pad b c2-pad] (when (f a b) (vec [a b]))))
+     )
+  ([f c1 c2 & cols] nil))
+
 ;;tests
 ;;equal sized lists
-(println (cross-product-full-outer [1 2] [3 4]))
+(def x (cross-product-with-predicate default-predicate [1 2] [3 4]))
+(println x)
+(println (= (list [1 3] [1 4] [2 3] [2 4]) x))
+
 ;;un-equal sized lists
-(println (cross-product-full-outer [1 2] [3]))
+(def x (cross-product-with-predicate default-predicate [1 2] [3]))
+(println x)
+(println (= (list [1 3] [1 nil] [2 3] [2 nil]) x))
+;(println (cross-product-with-predicate default-predicate [1 2] [3]))
+
 
 
 ;;(def next-chunk (stream-take-chunk stream-3 2))
