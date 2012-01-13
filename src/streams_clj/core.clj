@@ -65,25 +65,28 @@
 
 (defn- default-predicate [x & args] (true? true))
 
-(defn- create-var-sequence [n] (take n (vec ['a 'b 'c 'd 'e 'f 'g 'h 'i 'j 'k 'l 'm 'n 'o 'p 'q 'r 's 't 'u 'v 'w 'x 'y 'z]
-                                            )))
-
-(defmacro unroll [c1 & args] (
-                             let [pad-len (apply max-collection-len c1 args)
-                                  var-seq (create-var-sequence (+ 1 (count args)))
-                                  coll-seq (map (fn [x] (coll-pad-end x pad-len nil))  (conj args c1))
-                                  ]
-                               ;(println pad-len)
-                                 
-                               (println "BINDINGS => " var-seq coll-seq)
-                               
-                               `(for [~(interleave var-seq coll-seq)]
-                                  `(when (apply f var-seq) (vec var-seq)))
-                               ))
-
-(def x (macroexpand-1 '(unroll [1 2] [3 4] [5 6])))
-(println "X = " x)
+(defn- create-var-sequence [n] (take n (vec ['a 'b 'c 'd 'e 'f 'g 'h 'i 'j 'k 'l 'm 'n 'o 'p 'q 'r 's 't 'u 'v 'w 'x 'y 'z])))
 (println "Var Sequence (3) => " (create-var-sequence 3))
+
+(defmacro unroll [f c1 & args]
+  `(let [pad-len (max-collection-len c1 args)
+         var-seq (create-var-sequence (+ 1 (count args)))
+         coll-seq (map (fn [x] (coll-pad-end x pad-len nil)) (conj args c1))
+         f f
+         ]
+                                        ;    (println "pad-len => " pad-len)
+                                        ;    (println "ARGS => " f c1 args)
+                                        ;    (println "BINDINGS => " var-seq coll-seq)
+     `(for (vec ~(interleave var-seq coll-seq))
+       `(when (apply f var-seq) (vec var-seq)))
+    ))
+
+(def x (macroexpand-1 '(unroll default-predicate [1 2] [3 4] [5 6])))
+(println "X = " x)
+
+(def x (unroll default-predicate [1 2] [3 4] [5 6]))
+(println "X = " x)
+
 (defn- cross-product-with-predicate
   ([f c1] (cross-product-with-predicate f c1 c1)) ;;identity join
   ([f c1 c2] ( ;;join two windows
@@ -92,7 +95,8 @@
                  c2-pad (coll-pad-end c2 pad-len nil)]
              (for [a c1-pad b c2-pad] (when (f a b) (vec [a b]))))
      )
-  ([f c1 c2 & cols] nil))
+  ([f c1 c2 & cols] '(unroll f c1 (conj cols c2))
+     ))
 
 ;;tests
 ;;equal sized lists
@@ -106,6 +110,8 @@
 (println (= (list [1 3] [1 nil] [2 3] [2 nil]) x))
 ;(println (cross-product-with-predicate default-predicate [1 2] [3]))
 
+(def x (cross-product-with-predicate default-predicate [1 2] [3 4] [5 6]))
+(println x)
 
 
 ;;(def next-chunk (stream-take-chunk stream-3 2))
